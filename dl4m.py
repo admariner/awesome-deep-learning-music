@@ -51,8 +51,7 @@ def read_bib(filen="dl4m.bib"):
     """
     with open(filen, "r", encoding="utf-8") as bibtex_file:
         bibtex_str = bibtex_file.read()
-    bib_database = bibtexparser.loads(bibtex_str)
-    return bib_database
+    return bibtexparser.loads(bibtex_str)
 
 
 def load_bib(filen="dl4m.bib"):
@@ -93,11 +92,7 @@ def get_reproducibility(bib):
     """Description of get_reproducibility
     Generate insights on reproducibility
     """
-    cpt = 0
-    for entry in bib:
-        if "code" in entry:
-            if entry["code"][:2] != "No":
-                cpt += 1
+    cpt = sum("code" in entry and entry["code"][:2] != "No" for entry in bib)
     print(str(cpt) + " articles provide their source code.")
 
     return cpt
@@ -150,17 +145,15 @@ def generate_list_articles(bib):
                 articles += "| [" + entry["title"] + "](" + entry["link"] + ") | "
             else:
                 articles += "| " + entry["title"] + " | "
-            if "code" in entry:
-                if "No" in entry["code"]:
-                    articles += "No "
-                else:
-                    if "github" in entry["code"]:
-                        articles += "[GitHub"
-                    else:
-                        articles += "[Website"
-                    articles += "](" + entry["code"] + ") "
-            else:
+            if (
+                "code" in entry
+                and "No" in entry["code"]
+                or "code" not in entry
+            ):
                 articles += "No "
+            else:
+                articles += "[GitHub" if "github" in entry["code"] else "[Website"
+                articles += "](" + entry["code"] + ") "
             articles += "|\n"
         else:
             print("ERROR: Missing title for ", entry)
@@ -250,18 +243,15 @@ def pie_chart(items, field_name, max_nb_slice=8):
     """Description of pie_chart
     Display a pie_chart from the items given in input
     """
-    # plt.figure(figsize=(14, 10))
-    sizes = []
     labels = sorted(set(items))
-    for label in labels:
-        sizes.append(items.count(label))
-
+    # plt.figure(figsize=(14, 10))
+    sizes = [items.count(label) for label in labels]
     labels = np.array(labels)
     sizes = np.array(sizes)
     if len(sizes) > max_nb_slice:
         new_labels = []
         new_sizes = []
-        for _ in range(0, max_nb_slice):
+        for _ in range(max_nb_slice):
             index = np.where(sizes == max(sizes))[0]
             if len(index) == len(labels):
                 break
@@ -352,9 +342,7 @@ def create_table(bib, outfilen="dl4m.tsv"):
     print(fields)
 
     separator = "\t"
-    str2write = ""
-    for field in fields:
-        str2write += field.title() + separator
+    str2write = "".join(field.title() + separator for field in fields)
     str2write += "\n"
     for entry in bib:
         for field in fields:
